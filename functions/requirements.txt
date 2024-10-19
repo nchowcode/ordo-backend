@@ -1,3 +1,5 @@
 groq
 python-dotenv
 firebase_functions~=0.1.0
+google-auth-oauthlib~=1.2.1
+fastapi[standard]

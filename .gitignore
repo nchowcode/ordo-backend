@@ -1,3 +1,5 @@
 .env
 .venv
 client_secrets.json
+__pycache__
+*.log
