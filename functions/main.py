@@ -4,7 +4,7 @@
 
 # from functions_framework import http, https_fn
 from firebase_functions import https_fn
-from firebase_admin import initialize_app
+from firebase_admin import initialize_app, firestore
 # from entry_point import app
 from firebase_admin import firestore 
 import gmail.gmail_auth as gmailAuth
@@ -29,6 +29,11 @@ def oauth2callback(request: https_fn.Request):
 @https_fn.on_request()
 def profile(request: https_fn.Request):
     return gmailAuth.profile(request)
+
+@https_fn.on_request()
+def deleteEmails(request: https_fn.Request):
+    return gmailDatabase.filterEmails(request, db)
+    # return gmailDatabase.deleteEmails(request, db)
 
 @https_fn.on_request()
 def queryEmailsForAction(request: https_fn.Request):

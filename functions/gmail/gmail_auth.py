@@ -24,8 +24,12 @@ def save_credentials(credentials):
 
 def load_credentials():
     """Load the credentials from a file."""
-    if os.path.exists('token.json'):
-        with open('token.json', 'r') as token_file:
+    print('Current working directory:', os.getcwd())  # TESTING
+    token_path = os.path.abspath('token.json')
+    print('Absolute path to token.json:', token_path)  # TESTING
+    if os.path.exists(token_path):
+        print('yooo')  # TESTING
+        with open(token_path, 'r') as token_file:
             return Credentials.from_authorized_user_info(json.load(token_file), SCOPES)
     return None
 
