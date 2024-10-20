@@ -93,18 +93,76 @@ async def profile():
 
 @app.get("/test")
 async def test():
+    credentials = load_credentials()
+    service = build("gmail", "v1", credentials=credentials)
+    # get all new messages
     result = gmail_service.get_all_messages()
-    label_map = {}
+    label_map = []
     list_obj = result["messages"]
+    # obtain the current existing labels in the inbox
     curr_labels_obj = gmail_service.get_labels()
-    label_names = [label["name"] for label in curr_labels_obj]
-    print("labels", label_names)
+    curr_labels = [label["name"] for label in curr_labels_obj]
+    print("labels", curr_labels)
+    # with the new messages in the inbox, give each message into the LLM to classify
     for email in list_obj:
-        email_obj = gmail_service.format_messages(email["id"])
-        label = assign_label(email_obj, label_names) #jose func
-        label_map[email_obj["Subject"]] = label
-    gmail_service.apply_label(label_map,label_names)
-    print(label_map)
+        # turn the email item into something the LLM can understand
+        email_obj = gmail_service.format_message(email["id"])
+        label = assign_label(email_obj, curr_labels) # call the LLM
+        # parse the result
+        label_map.append({"email": email["id"],"subject": email_obj["Subject"], "label": label})
+    
+    # TODO: After the LLM inference is done, most likely dump this into the database for confirmation
+
+    # After confirmation, execute the code below
+    # TODO: go into the database, extract out all the emails, and put them back into "label_map" (it's a list)
+
+    # next step: create any labels that do not exist yet
+    # find labels not in inbox yet (unique/new labels)
+    new_labels = gmail_service.get_new_labels(label_map, curr_labels)
+    # for each new label, create the label
+    for label in new_labels:
+        label_body = {
+            "id" : label,
+            "name": label,
+            "labelListVisibility": "labelShow", 
+            "messageListVisibility": "show",  
+            "type": "user"  
+        }
+        # hit the gmail API
+        service.users().labels().create(userId="me",body=label_body).execute()
+    
+    
+    # next step: now, for each new message, attach it to the label in the gmail API
+
+    # first, turn the list of email objects and aggregate them by label
+    """
+        we want to build a dictionary that looks like this:
+        { "work" : ["123"] }
+    """
+    labels_dict = {}
+    for email in label_map:
+        label = email["labels"]
+        if label not in labels_dict:
+            labels_dict[label] = [email["emailId"]]
+        else:
+            existing_emails = labels_dict[label]
+            existing_emails.append([email["emailId"]])
+            labels_dict[label] = existing_emails
+
+    # now that we have the emails aggregated to a single label, hit the gmail API
+    for label in labels_dict:
+        body_obj = {
+            "addLabelIds": [ label
+            ],
+            "ids": labels_dict[label],
+        }
+        # hit the gmail API
+        service.users().messages().batchModify(userId = "me",body=body_obj)
+
+
+
+
+
     # go through each email in results
     # extract content from id 
     # add each content line to a list
@@ -122,7 +180,7 @@ async def test():
     
     # hm = {}
     # for _ in range(10):
-    #     label = format_messages(message_id)
+    #     label = format_message(message_id)
     #     hm[message_id] = label
     # return hm 
         
