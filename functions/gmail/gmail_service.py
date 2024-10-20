@@ -21,8 +21,8 @@ class Message:
 def get_all_messages() -> List[Message]:
     credentials = gmail_auth.load_credentials()
     service = build('gmail', 'v1', credentials=credentials) #wait for git push
-    results = service.users().messages().list(userId="me",maxResults=1).execute()
-    print(results)
+    results = service.users().messages().list(userId="me",maxResults=10).execute()
+    # print(results)
 
     return results
     
@@ -47,19 +47,26 @@ def format_messages(message_id):
     credentials = gmail_auth.load_credentials()
     service = build('gmail', 'v1', credentials=credentials) #wait for git push
     result = service.users().messages().get(userId="me", id = message_id).execute()
-    body_content = result["payload"]["parts"][0]["body"]["data"]
+    payload = result["payload"]
+    # try to get the body content. If it is a MIME message, parts will not exist
+    body_content = None
+    if "parts" in payload.keys():
+        body_content = payload["parts"][0]["body"]["data"]
+    else:
+        body_content = payload["body"]["data"]
     decoded_body = base64.urlsafe_b64decode(body_content).decode('utf-8')
     clean_body = _remove_links(decoded_body).replace('\r\n', '\n').strip()
     user_id = _get_self(service)
     extracted_headers['Body'] = clean_body
     extracted_headers['To'] = user_id
 
-    print(clean_body)
+    
     headers = result['payload']['headers']
     for header in headers:
         if header['name'] in desired_headers:
             extracted_headers[header['name']] = header['value']
     print(extracted_headers)
+    return extracted_headers
     # print(headers)
     # new_label = groq_label(message_body)
     # return new_label
@@ -78,12 +85,38 @@ def delete_emails(credentials, categories: list[str]) -> json:
     return result
 
 
+def get_labels() -> List[str]:
+    credentials = gmail_auth.load_credentials()
+    service = build("gmail", "v1", credentials=credentials)
+    results = service.users().labels().list(userId="me").execute()
+    labels = results.get("labels", [])
+    return labels
 
 def stage_emails_for_deletion(service, categories, db):
     staged_emails = []
 
 
+def apply_label(label_map: dict, curr_label_names: List[str]):
+    # if label in label_map does not exist in curr_label, create new label
 
+
+    credentials = gmail_auth.load_credentials()
+    service = build("gmail", "v1", credentials=credentials)
+    unique_tags = set(label_map.values())
+    new_labels_needed = unique_tags.difference(set(curr_label_names))
+
+    for label in new_labels_needed:
+        label_body = {
+            "name": label,
+            "labelListVisibility": "labelShow", 
+            "messageListVisibility": "show",  
+            "type": "user"  
+        }
+
+        results = service.users().labels().create(userId="me",body=label_body).execute()
+    
+
+    
 def _remove_links(text):
     url_pattern = r'https?://[^\s]+'
     cleaned_text = re.sub(url_pattern, '', text)

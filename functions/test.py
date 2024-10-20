@@ -7,7 +7,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-from  gmail import gmail_service, gmail_auth
+from gmail import gmail_service, gmail_auth
+from groqllm.inference import assign_label
 # from gmail.gmail_auth import load_credentials, save_credentials
  
 
@@ -79,7 +80,7 @@ async def profile():
         results = service.users().labels().list(userId="me").execute()
         test()
         labels = results.get("labels", [])
-
+        
         if not labels:
             print("No labels found.")
             return
@@ -93,11 +94,17 @@ async def profile():
 @app.get("/test")
 async def test():
     result = gmail_service.get_all_messages()
-
+    label_map = {}
     list_obj = result["messages"]
+    curr_labels_obj = gmail_service.get_labels()
+    label_names = [label["name"] for label in curr_labels_obj]
+    print("labels", label_names)
     for email in list_obj:
-        gmail_service.format_messages(email["id"])
-
+        email_obj = gmail_service.format_messages(email["id"])
+        label = assign_label(email_obj, label_names) #jose func
+        label_map[email_obj["Subject"]] = label
+    gmail_service.apply_label(label_map,label_names)
+    print(label_map)
     # go through each email in results
     # extract content from id 
     # add each content line to a list
