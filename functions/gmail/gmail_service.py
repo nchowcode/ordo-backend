@@ -4,7 +4,7 @@ from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 import os 
 import json
-from . import gmail_auth
+import gmail.gmail_auth as gmail_auth
 import base64
 import re
 # from groq.inference import email
@@ -106,7 +106,7 @@ def delete_emails(credentials, categories: list[str]) -> json:
 def get_labels() -> List[str]:
     credentials = gmail_auth.load_credentials()
     if not credentials or not credentials.valid:
-        credentials = gmail_auth.refresh_credentials()
+        credentials = gmail_auth.refresh_credentials(credentials)
     service = build("gmail", "v1", credentials=credentials)
     results = service.users().labels().list(userId="me").execute()
     labels = results.get("labels", [])
@@ -123,7 +123,7 @@ def extract_name(from_field: str) -> str:
 def get_stores() -> List[str]:
     credentials = gmail_auth.load_credentials()
     if not credentials or not credentials.valid:
-        credentials = gmail_auth.refresh_credentials()
+        credentials = gmail_auth.refresh_credentials(credentials)
     service = build("gmail", "v1", credentials=credentials)
     results = service.users().messages().list(userId="me", maxResults=50, q="category:Promotions").execute()
     messages = results.get("messages", [])

@@ -47,7 +47,8 @@ def deleteEmails(request: https_fn.Request):
 
 @https_fn.on_request()
 def filters(request: https_fn.Request):
-    return gmailService.get_labels(request)
+    return gmailService.get_labels()
+
 
 @https_fn.on_request()
 def stores(request: https_fn.Request):
