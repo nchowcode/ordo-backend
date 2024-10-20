@@ -1,43 +1,107 @@
 import json
+import re
+from typing import TypedDict
 from firebase_functions import https_fn
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
-from gmail.gmail_auth import load_credentials
+from gmail.gmail_service import format_messages
+from gmail.gmail_auth import load_credentials, refresh_credentials
 from google.oauth2.credentials import Credentials
+
+
+class DeleteMessage(TypedDict):
+    name: str
+    id: str
+    From: str
+
+def extract_percentage_discounts(text):
+    """Extracts all percentage values from the text."""
+    # Regular expression to find numbers followed by a percent sign
+    percentage_regex = r'(\d{1,3})\s*%'
+    matches = re.findall(percentage_regex, text)
+    percentages = [int(match) for match in matches]
+    return percentages
 
 
 def search_emails(filters: list[str], min_discount:int, max_discount:int, stores:list[str]):
     credentials = load_credentials()
-    print('credeeee:', credentials.get_cred_info()) # TESTING
     if not credentials or not credentials.valid:
-        return None, https_fn.Response(
-            status=302,
-            headers={'Location': 'http://127.0.0.1:5001/ordo-ai/us-central1/index'}
-        )
-    print('hello') # TESTING
+        # return None, https_fn.Response(
+        #     status=302,
+        #     headers={'Location': 'http://127.0.0.1:5001/ordo-ai/us-central1/index'}
+        # )
+        credentials = refresh_credentials(credentials)
+    
     service = build("gmail", "v1", credentials=credentials)
-    query = filters
-    if min_discount != float('-inf'):
-        query += f' min_discount:{min_discount}'
-    if max_discount != float('inf'):
-        query += f' max_discount:{max_discount}'
-    if stores:
-        query += f' {" OR ".join([f"from:{store}" for store in stores])}'
-    print('query:', query)  # TESTING
-    try:
-        results = service.users().messages().list(userId="me", q=query).execute()
-        messages = results.get('messages', [])
-        filtered_emails = []
+    """
+        first, get everything in the promotions category
+        filter out any emails that contain a %
+        extract out the discount amount using regex: 80%, 20%, 10%
+        parse out the integer value of the discount
+        do the min/max discount filtering 
+    """
+    filtered_emails = []
+    filters = ' OR '.join([f"label:{filter}" for filter in filters]) if filters else ''
+    filter_emails = service.users().messages().list(userId="me", q=filters).execute()
+    filter_messages = filter_emails.get('messages', [])
+
+    print('EGG')
+    for message in filter_messages:
+        msg = format_messages(message['id'], service)
+        # print('MSG: ', msg)
+        filtered_emails.append((message['id'], msg['From'], msg['Subject']))
+    discounts = []
+    print('EGG2')
+
+    if min_discount != None or max_discount != None:
+        all_promotions = service.users().messages().list(userId="me", maxResults=50, q="category:promotions").execute() # default maxResults is 100
+        
+        messages = all_promotions.get('messages', [])
         for message in messages:
-            msg = service.users().messages().get(userId="me", id=message['id']).execute()
-            filtered_emails.append(msg)
-        return filtered_emails, None
-    except HttpError as error:
-        return None, https_fn.Response(
-            json.dumps({"message": "An error occurred.", "error": str(error)}),
-            status=500,
-            mimetype='application/json',
-        )
+            msg = format_messages(message['id'], service)
+            # print('msg:', msg) # TESTING
+            if '%' in msg:
+                # Modify the regex to allow spaces between digits
+                discount_match = re.search(r'\d\s*\d*%', msg)
+                if discount_match:
+                    discount = discount_match.group()
+                    # Remove spaces and convert to integer
+                    discount = int(discount.replace(' ', '')[:-1])
+                    if min_discount <= discount <= max_discount:
+                        # discounts.append(message.headers['From'])
+                        # print('discount:', discount) # TESTING
+                        discounts.append((message['id'], msg['From'], msg['Subject'])) # (email_uid, email_from)
+    
+    # search for emails from stores
+    stores_emails = []
+    if stores:
+        all_store_emails = service.users().messages().list(userId="me", maxResults=100, q=' OR '.join([f"from:{store}" for store in stores])).execute()
+        store_messages = all_store_emails.get('messages', [])
+        for message in store_messages:
+            msg = format_messages(message['id'], service)
+            stores_emails.append((message['id'], msg['From'], msg['Subject']))
+
+    combined_emails = []
+    if filtered_emails:
+        combined_emails.extend(filtered_emails)
+    if discounts:
+        for email in discounts:
+            if email not in combined_emails:
+                combined_emails.append(email)
+    if stores_emails:
+        for email in stores_emails:
+            if email not in combined_emails:
+                combined_emails.append(email)
+    # combined_emails_as_lists = [list(email) for email in combined_emails]
+    combined_emails_as_dicts = [
+        {"name": email[2], "id": email[0], "From": email[1]} for email in combined_emails
+    ]
+    # print('COMBINED:', combined_emails_as_dicts)
+
+    if not combined_emails:
+        return None, "No emails found."
+    return combined_emails_as_dicts, None 
+
 
 def user_labels(request: https_fn.Request):
     credentials = load_credentials()

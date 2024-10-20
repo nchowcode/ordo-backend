@@ -24,14 +24,20 @@ def save_credentials(credentials):
 
 def load_credentials():
     """Load the credentials from a file."""
-    print('Current working directory:', os.getcwd())  # TESTING
     token_path = os.path.abspath('token.json')
-    print('Absolute path to token.json:', token_path)  # TESTING
     if os.path.exists(token_path):
-        print('yooo')  # TESTING
         with open(token_path, 'r') as token_file:
-            return Credentials.from_authorized_user_info(json.load(token_file), SCOPES)
+            token_file = json.load(token_file)
+            credentials = Credentials.from_authorized_user_info(token_file, SCOPES)
+            return credentials
     return None
+
+def refresh_credentials(credentials):
+    """Refresh the credentials."""
+    credentials.refresh(Request())
+    save_credentials(credentials)
+    credentials = load_credentials()
+    return credentials
 
 def index(request: https_fn.Request):
     # Load credentials if they exist

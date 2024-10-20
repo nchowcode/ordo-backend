@@ -7,6 +7,8 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from firebase_functions import https_fn
 import json
 
+from gmail.get_emails import search_emails
+
 # Add emails to pending field of the document; emails in pending field are used for rerendering in the pop up
 def queryEmailsForAction(request: https_fn.Request, db: firestore.client):
     try:
@@ -112,27 +114,30 @@ def cleanUpPendingEmails(request: https_fn.Request, db: firestore.client):
 # } 
 def filterEmails(request: https_fn.Request, db: firestore.Client):
     try:
-        data = request.json
-        print('data:', data)  # TESTING
-        # Validate input data
+        data = request.get_json()
         if not data:
             raise ValueError("Request data is missing.")
-        if 'filters' not in data or 'stores' not in data:
-            raise ValueError("Required fields 'filters' and 'stores' are missing.")
-        filters = data['filters']
-        min_discount, max_discount = data.get('discount', (0, 100))
-        stores = data['stores']
-        # Convert discounts to integers, handling special cases
-        min_discount = 0 if min_discount == 0 else int(min_discount)
-        max_discount = 100 if max_discount == 100 else int(max_discount)
-        # Search for emails
+        filters = data.get('filters', None)
+        discounts = data.get('discount', None)
+        min_discount = discounts[0] if discounts and discounts[0] else None
+        max_discount = discounts[1] if discounts and discounts[1] else None
+        # min_discount, max_discount = data.get('discount', (None, None))
+        stores = data.get('stores', None)
+        if min_discount is None and max_discount is None:
+            min_discount = None
+            max_discount = None
+        else:
+            min_discount = 0 if min_discount is None else int(min_discount)
+            max_discount = 100 if max_discount is None else int(max_discount)
+        # print('tttt:', filters, discounts, stores) # TESTING
         filtered_emails, err = search_emails(filters, min_discount, max_discount, stores)
-        print('filtered_emails:', filtered_emails)  # TESTING
+        # if filtered_emails: #TESTING
+        #     print('there is filters:', filtered_emails)  # TESTING
         if err:
+            print(f"An error occurred while searching for emails: {err}")
             raise Exception("An error occurred while searching for emails.")
-        print('filtered_emails:', filtered_emails)  # TESTING
         return https_fn.Response(
-            json.dumps({"filtered_emails": filtered_emails}),
+            json.dumps({"deletedEmails": filtered_emails}),
             status=200,
             mimetype='application/json',
         )

@@ -33,10 +33,10 @@ def get_all_messages() -> List[Message]:
   # Iterate through them and call users.messages.get to retrieve full details
 def _get_self(service) -> str:
     result = service.users().getProfile(userId="me").execute()
-    print(result)
+    # print(result)
     return result['emailAddress']
 
-def format_messages(message_id):
+def format_messages(message_id, service):
     # (email, current_labels)
     # get From
     # get To ("me") dont need nothing
@@ -45,17 +45,27 @@ def format_messages(message_id):
     desired_headers = ['From', 'Subject']
     extracted_headers = {}
     credentials = gmail_auth.load_credentials()
-    service = build('gmail', 'v1', credentials=credentials) #wait for git push
+    if not credentials and not credentials.valid:
+        credentials = gmail_auth.refresh_credentials()
+    if not service:
+        service = build("gmail", "v1", credentials=credentials)
     result = service.users().messages().get(userId="me", id = message_id).execute()
     payload = result["payload"]
     # try to get the body content. If it is a MIME message, parts will not exist
     body_content = None
+    encoded = True
     if "parts" in payload.keys():
-        body_content = payload["parts"][0]["body"]["data"]
+        if "data" in payload["parts"][0]["body"].keys():
+            body_content = payload["parts"][0]["body"]["data"]
+        else:
+            encoded = False
     else:
-        body_content = payload["body"]["data"]
-    decoded_body = base64.urlsafe_b64decode(body_content).decode('utf-8')
-    clean_body = _remove_links(decoded_body).replace('\r\n', '\n').strip()
+        if "data" in payload["body"].keys():
+            body_content = payload["body"]["data"]
+        else:
+            encoded = False
+    decoded_body = base64.urlsafe_b64decode(body_content).decode('utf-8') if encoded else body_content
+    clean_body = _remove_links(decoded_body).replace('\r\n', '\n').strip() if decoded_body else 'Empty Body'
     user_id = _get_self(service)
     extracted_headers['Body'] = clean_body
     extracted_headers['To'] = user_id
@@ -65,7 +75,6 @@ def format_messages(message_id):
     for header in headers:
         if header['name'] in desired_headers:
             extracted_headers[header['name']] = header['value']
-    print(extracted_headers)
     return extracted_headers
     # print(headers)
     # new_label = groq_label(message_body)

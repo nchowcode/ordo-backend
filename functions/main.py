@@ -3,6 +3,7 @@
 # Deploy with `firebase deploy`
 
 # from functions_framework import http, https_fn
+import json
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore
 # from entry_point import app
@@ -32,7 +33,13 @@ def profile(request: https_fn.Request):
 
 @https_fn.on_request()
 def deleteEmails(request: https_fn.Request):
-    return gmailDatabase.filterEmails(request, db)
+    if request.method == 'POST':
+        return gmailDatabase.filterEmails(request, db)
+    return https_fn.Response(
+        json.dumps({"message": "Only POST requests are allowed."}),
+        status=405,
+        mimetype='application/json',
+    )
     # return gmailDatabase.deleteEmails(request, db)
 
 @https_fn.on_request()
