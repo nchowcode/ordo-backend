@@ -51,7 +51,38 @@ async def detect_junk(email_data: email) -> str:
     return chat_completion.choices[0].message.content
 
 # look at existing labels, and determine if the email belongs to it, but if not
+def assign_label(email_data: email, label: list[str]) -> str:
+    prompt = f"""
+    Determine whether the following email belongs to the following labels: {label}. If it does not belong to any of the labels, please create a new label for the email. Respond with the label(s) that the email belongs to.
 
+    ---
+
+    From: {email_data['From']}
+    To: {email_data['To']}
+    Subject: {email_data['Subject']}
+    Body: {email_data['Body']}
+
+    ---
+    """
+
+    chat_completion = client.chat.completions.create(
+        model="llama-3.2-1b-preview",  
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        max_tokens=5,        # Small number since the expected response is short
+        temperature=0,       # For deterministic output
+        top_p=1,             # To consider all tokens with non-zero probability
+        frequency_penalty=0, # No penalty for token frequency
+        presence_penalty=0,  # No penalty for presence of tokens
+        stop=None,           # No stop tokens required
+        stream=False         
+    )
+
+    return chat_completion.choices[0].message.content
 
 
 
