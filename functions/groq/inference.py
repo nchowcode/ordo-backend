@@ -14,7 +14,7 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 class email(TypedDict):
     From: str
     To: str
-    Subject: int
+    Subject: str
     Body: str
 
 async def detect_junk(email_data: email) -> str:
@@ -49,6 +49,8 @@ async def detect_junk(email_data: email) -> str:
     )
 
     return chat_completion.choices[0].message.content
+
+# look at existing labels, and determine if the email belongs to it, but if not
 
 
 
