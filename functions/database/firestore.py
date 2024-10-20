@@ -1,13 +1,14 @@
 import json
+from typing import List
 from urllib.parse import parse_qs
 import firebase_admin
-from firebase_admin import firestore 
-from firebase_admin import initialize_app
+from firebase_admin import firestore, initialize_app
 from google.cloud.firestore_v1.base_query import FieldFilter
 from firebase_functions import https_fn
 import json
 
-from gmail.get_emails import search_emails
+from gmail.gmail_auth import load_credentials, refresh_credentials
+from gmail.get_emails import DeleteMessage, search_emails
 
 # Add emails to pending field of the document; emails in pending field are used for rerendering in the pop up
 def queryEmailsForAction(request: https_fn.Request, db: firestore.client):
@@ -136,11 +137,12 @@ def filterEmails(request: https_fn.Request, db: firestore.Client):
         if err:
             print(f"An error occurred while searching for emails: {err}")
             raise Exception("An error occurred while searching for emails.")
-        return https_fn.Response(
-            json.dumps({"deletedEmails": filtered_emails}),
-            status=200,
-            mimetype='application/json',
-        )
+        # return https_fn.Response(
+        #     json.dumps({"deletedEmails": filtered_emails}),
+        #     status=200,
+        #     mimetype='application/json',
+        # )
+        return filtered_emails
     except ValueError as ve:
         return https_fn.Response(
             json.dumps({"message": "invalid argument", "error": str(ve)}),
@@ -167,10 +169,18 @@ def filterEmails(request: https_fn.Request, db: firestore.Client):
 
     # return
 
-# def deleteEmails(data, db: firestore.client):
-#     email_id = data['email_id']
-#     email_ref = db.collection("emails").document(email_id)
-#     email_ref.delete()
+def deleteEmails(email_id: str, deletedMusic: List[DeleteMessage], db: firestore.client):
+    # credentials = load_credentials()
+    # if not credentials or not credentials.valid:
+    #     credentials = refresh_credentials()
+    # print(credentials.get_cred_info())
+    print(email_id)
+
+    # email_id = credentials.id_token['email']
+    # print('deleteemail email_id:', email_id) #TESTING
+    # email_id = deletedMusic['email_id']
+    # email_ref = db.collection("emails").document(email_id)
+    # email_ref.delete()
 
 
 def testFunctions():

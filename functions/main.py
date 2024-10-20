@@ -34,7 +34,9 @@ def profile(request: https_fn.Request):
 @https_fn.on_request()
 def deleteEmails(request: https_fn.Request):
     if request.method == 'POST':
-        return gmailDatabase.filterEmails(request, db)
+        deleteMusic = gmailDatabase.filterEmails(request, db)
+        email = request.get_json()['email']
+        gmailDatabase.deleteEmails(email, deleteMusic, db)
     return https_fn.Response(
         json.dumps({"message": "Only POST requests are allowed."}),
         status=405,

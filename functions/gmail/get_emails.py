@@ -1,6 +1,6 @@
 import json
 import re
-from typing import TypedDict
+from typing import List, TypedDict
 from firebase_functions import https_fn
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
@@ -23,7 +23,7 @@ def extract_percentage_discounts(text):
     return percentages
 
 
-def search_emails(filters: list[str], min_discount:int, max_discount:int, stores:list[str]):
+def search_emails(filters: list[str], min_discount:int, max_discount:int, stores:list[str]) -> List[DeleteMessage]:
     credentials = load_credentials()
     if not credentials or not credentials.valid:
         # return None, https_fn.Response(

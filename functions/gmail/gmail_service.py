@@ -23,7 +23,6 @@ def get_all_messages() -> List[Message]:
     service = build('gmail', 'v1', credentials=credentials) #wait for git push
     results = service.users().messages().list(userId="me",maxResults=10).execute()
     # print(results)
-
     return results
     
     # messages.extend(response.get('messages', []))
@@ -173,7 +172,7 @@ def create_label(userId):
 # try
 # HTTP 400 - Invalid label name 
 # occurs when user custom label collides with system label
-    ...
+    # ...
         # labels are created.
     # apply all labels to correspoding emails
     # batchApplyLabels()
