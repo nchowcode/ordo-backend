@@ -11,12 +11,14 @@
 }`
 
 **retrievePendingEmails(data):**
+
 *Data:*
 `{
 "email_id": "email@gmail.com", 
 }`
 
 **cleanUpPendingEmails(data)**
+
 *Data:*
 `{
 "email_id": "email@gmail.com", 
