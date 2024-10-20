@@ -1,4 +1,4 @@
-from typing import List
+from typing import Counter, List
 import requests
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -105,10 +105,40 @@ def delete_emails(credentials, categories: list[str]) -> json:
 
 def get_labels() -> List[str]:
     credentials = gmail_auth.load_credentials()
+    if not credentials or not credentials.valid:
+        credentials = gmail_auth.refresh_credentials()
     service = build("gmail", "v1", credentials=credentials)
     results = service.users().labels().list(userId="me").execute()
     labels = results.get("labels", [])
     return labels
+
+
+def extract_name(from_field: str) -> str:
+    # Regular expression to extract the name part from the From field
+    match = re.match(r'^(.*?)(?:\s*<.*>)?$', from_field)
+    if match:
+        return match.group(1).strip()
+    return from_field
+
+def get_stores() -> List[str]:
+    credentials = gmail_auth.load_credentials()
+    if not credentials or not credentials.valid:
+        credentials = gmail_auth.refresh_credentials()
+    service = build("gmail", "v1", credentials=credentials)
+    results = service.users().messages().list(userId="me", maxResults=50, q="category:Promotions").execute()
+    messages = results.get("messages", [])
+    stores_emails = []
+    for message in messages:
+        msg = format_messages(message['id'], service)
+        stores_emails.append((message['id'], msg['From'], msg['Subject']))
+    # Count occurrences of each store
+    # store_counter = Counter(email[1] for email in stores_emails)
+    store_counter = Counter(extract_name(email[1]) for email in stores_emails)
+    # Get the 5 most common stores
+    common_stores = store_counter.most_common(5)
+    # Transform to list of dicts
+    common_store_names = [store for store, count in common_stores]
+    return common_store_names
 
 def stage_emails_for_deletion(service, categories, db):
     staged_emails = []

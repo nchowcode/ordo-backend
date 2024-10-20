@@ -9,6 +9,7 @@ from firebase_admin import initialize_app, firestore
 # from entry_point import app
 from firebase_admin import firestore 
 import gmail.gmail_auth as gmailAuth
+import gmail.gmail_service as gmailService
 import database.firestore as gmailDatabase
 
 initialize_app()
@@ -43,6 +44,14 @@ def deleteEmails(request: https_fn.Request):
         mimetype='application/json',
     )
     # return gmailDatabase.deleteEmails(request, db)
+
+@https_fn.on_request()
+def filters(request: https_fn.Request):
+    return gmailService.get_labels(request)
+
+@https_fn.on_request()
+def stores(request: https_fn.Request):
+    return gmailService.get_stores(request)
 
 @https_fn.on_request()
 def queryEmailsForAction(request: https_fn.Request):
