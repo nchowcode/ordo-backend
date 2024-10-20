@@ -36,7 +36,17 @@ def _get_self(service) -> str:
     print(result)
     return result['emailAddress']
 
-def format_messages(message_id):
+"""
+    extract required fields from single message
+    returns an object that looks like:
+        {  
+            From: {email_data['From']}
+            To: {email_data['To']} 
+            Subject: {email_data['Subject']}
+            Body: {email_data['Body']}
+        }
+"""
+def format_message(message_id):
     # (email, current_labels)
     # get From
     # get To ("me") dont need nothing
@@ -96,16 +106,50 @@ def stage_emails_for_deletion(service, categories, db):
     staged_emails = []
 
 
-def apply_label(label_map: dict, curr_label_names: List[str]):
+"""
+input:
+    [    
+        { emailId : int, subject: str, label: str }
+        # is the same as:
+        Email
+
+    ]
+    
+
+"""
+# [1,2,3,4,5]
+
+
+def get_new_labels(email_list: dict, curr_label_names: List[str]) -> List[str]:
     # if label in label_map does not exist in curr_label, create new label
+    # goal: find unique tags from provided label_map from ai
+    #       which i know will have duplicates
+    # steps:
+    # use curr_label as set
+
+    new_labels = []
+    existing_labels = set(curr_label_names)
+    # iterate through label_map
+    for email in email_list:
+    # if label not present in curr_label set, it needs to be created
+        if email["label"] not in existing_labels:
+            new_labels.append()
+    return new_labels
+    # insert label to empty list
+    # loop ends
+
+    # check if label exists in current_labels
+    # if it does not exist, create label via gmailapi
+    # apply new label via batchApply
+    # i need list of email_ids
+    # i need correlating label to apply
+    # im thinking { label: [email_ids] }
+    
+ 
+
+def create_label(userId):
 
 
-    credentials = gmail_auth.load_credentials()
-    service = build("gmail", "v1", credentials=credentials)
-    unique_tags = set(label_map.values())
-    new_labels_needed = unique_tags.difference(set(curr_label_names))
-
-    for label in new_labels_needed:
         label_body = {
             "name": label,
             "labelListVisibility": "labelShow", 
@@ -114,7 +158,28 @@ def apply_label(label_map: dict, curr_label_names: List[str]):
         }
 
         results = service.users().labels().create(userId="me",body=label_body).execute()
-    
+        messages = _find_tagged_messages(label)
+    # req = "POST https://gmail.googleapis.com/gmail/v1/users/{userId}/labels"
+
+# try
+# HTTP 400 - Invalid label name 
+# occurs when user custom label collides with system label
+    ...
+        # labels are created.
+    # apply all labels to correspoding emails
+    # batchApplyLabels()
+#   "addLabelIds": [ # A list of label IDs to add to messages.
+#     "A String",
+#   ],
+#   "ids": [ # The IDs of the messages to modify. There is a limit of 1000 ids per request.
+#     "A String",
+#   ],
+#   "removeLabelIds": [ # A list of label IDs to remove from messages.
+#     "A String",
+#   ],
+
+def _find_tagged_messages(label: str):
+    ...
 
     
 def _remove_links(text):
@@ -132,14 +197,6 @@ def add_tags(labels : list[str],userID):
         "your_label_id"
     ],
     }
-
-def create_label(userId):
-    # req = "POST https://gmail.googleapis.com/gmail/v1/users/{userId}/labels"
-
-# try
-# HTTP 400 - Invalid label name 
-# occurs when user custom label collides with system label
-    ...
 
 def main():
     userId = "nathanchow456@gmail.com"
