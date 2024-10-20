@@ -2,15 +2,42 @@
 # To get started, simply uncomment the below code or create your own.
 # Deploy with `firebase deploy`
 
-from functions_framework import http
+# from functions_framework import http, https_fn
+from firebase_functions import https_fn
 from firebase_admin import initialize_app
-
-from entry_point import app
+# from entry_point import app
+from firebase_admin import firestore 
+import gmail.gmail_auth as gmailAuth
+import database.firestore as gmailDatabase
 
 initialize_app()
+db = firestore.client()
+
+# @http
+# def fastapi_app(request):
+#     return app(request.scope, request.receive, request.send)
 
 
-@http
-def fastapi_app(request):
-    return app(request.scope, request.receive, request.send)
+@https_fn.on_request()
+def index(request: https_fn.Request):
+    return gmailAuth.index(request)
 
+@https_fn.on_request()
+def oauth2callback(request: https_fn.Request):
+    return gmailAuth.oauth2callback(request)
+
+@https_fn.on_request()
+def profile(request: https_fn.Request):
+    return gmailAuth.profile(request)
+
+@https_fn.on_request()
+def queryEmailsForAction(request: https_fn.Request):
+    return gmailDatabase.queryEmailsForAction(request, db)
+
+@https_fn.on_request()
+def retrievePendingEmails(request: https_fn.Request):
+    return gmailDatabase.retrievePendingEmails(request, db)
+
+@https_fn.on_request()
+def cleanUpPendingEmails(request: https_fn.Request):
+    return gmailDatabase.cleanUpPendingEmails(request, db)
