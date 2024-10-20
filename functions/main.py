@@ -2,12 +2,15 @@
 # To get started, simply uncomment the below code or create your own.
 # Deploy with `firebase deploy`
 
-from firebase_functions import https_fn
+from functions_framework import http
 from firebase_admin import initialize_app
 
-# initialize_app()
-#
-#
-# @https_fn.on_request()
-# def on_request_example(req: https_fn.Request) -> https_fn.Response:
-#     return https_fn.Response("Hello world!")
+from entry_point import app
+
+initialize_app()
+
+
+@http
+def fastapi_app(request):
+    return app(request.scope, request.receive, request.send)
+

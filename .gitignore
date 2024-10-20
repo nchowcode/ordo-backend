@@ -2,3 +2,8 @@
 .venv
 credentials.json
 SERVICE_ACCOUNT.json
+client_secrets.json
+__pycache__
+*.log
+.DS_Store
+token.json
