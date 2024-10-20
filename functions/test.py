@@ -7,7 +7,9 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-
+from  gmail import gmail_service, gmail_auth
+# from gmail.gmail_auth import load_credentials, save_credentials
+ 
 
 app = FastAPI()
 
@@ -75,6 +77,7 @@ async def profile():
         # Call the Gmail API
         service = build("gmail", "v1", credentials=credentials)
         results = service.users().labels().list(userId="me").execute()
+        test()
         labels = results.get("labels", [])
 
         if not labels:
@@ -83,11 +86,38 @@ async def profile():
         print("Labels:")
         for label in labels:
             print(label["name"])
-
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
         print(f"An error occurred: {error}")
 
+@app.get("/test")
+async def test():
+    result = gmail_service.get_all_messages()
+
+    list_obj = result["messages"]
+    for email in list_obj:
+        gmail_service.format_messages(email["id"])
+
+    # go through each email in results
+    # extract content from id 
+    # add each content line to a list
+    # convert content to class email 
+    # put it in a list to sent to ai 
+    # --- jose's code will take in the returned obj
+    # ai would return list categories / labels 
+    # ---- my code takes list of labels 
+    # retreive current labels with function 
+    # retreive list of labels from ai
+    # eliminate duplicates from overlapping labels with set
+    # list of new labels 
+    # create new labels, labels.color
+    # apply labels to corresponding email ids
+    
+    # hm = {}
+    # for _ in range(10):
+    #     label = format_messages(message_id)
+    #     hm[message_id] = label
+    # return hm 
         
 
     # # Use the credentials to make an authenticated request
