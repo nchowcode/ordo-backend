@@ -6,10 +6,11 @@
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore
 # from entry_point import app
+from firebase_admin import firestore 
 import gmail.gmail_auth as gmailAuth
 import database.firestore as gmailDatabase
 
-app = initialize_app()
+initialize_app()
 db = firestore.client()
 
 # @http
@@ -33,7 +34,6 @@ def profile(request: https_fn.Request):
 def deleteEmails(request: https_fn.Request):
     return gmailDatabase.filterEmails(request, db)
     # return gmailDatabase.deleteEmails(request, db)
-
 
 @https_fn.on_request()
 def queryEmailsForAction(request: https_fn.Request):

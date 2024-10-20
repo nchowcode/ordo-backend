@@ -11,6 +11,7 @@ from typing import TypedDict
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
+# {"From":from, "To": to, "Subject": subject, "Body": body}
 class email(TypedDict):
     From: str
     To: str
